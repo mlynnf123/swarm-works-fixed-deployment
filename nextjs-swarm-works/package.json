@@ -1,0 +1,51 @@
+{
+  "name": "swarm-works",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@arcadeai/arcadejs": "^1.8.1",
+    "@auth/prisma-adapter": "^2.10.0",
+    "@prisma/client": "^6.11.0",
+    "@solana/pay": "^0.2.5",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-phantom": "^0.9.28",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-solflare": "^0.6.32",
+    "@solana/wallet-adapter-wallets": "^0.19.37",
+    "@solana/web3.js": "^1.98.2",
+    "@supabase/supabase-js": "^2.50.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.11.16",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "bcryptjs": "^3.0.2",
+    "bignumber.js": "^9.3.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "lucide-react": "^0.320.0",
+    "next": "14.1.0",
+    "next-auth": "^4.24.11",
+    "prisma": "^6.11.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "stripe": "^18.3.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.20.0",
+    "@typescript-eslint/parser": "^6.20.0",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.1.0",
+    "postcss": "^8.4.33"
+  }
+}

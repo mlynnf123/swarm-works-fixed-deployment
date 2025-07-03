@@ -1,0 +1,360 @@
+# GitLab CI/CD Pipeline for Swarm Works AI Deployment
+# This deploys CodeLlama AI service to DigitalOcean
+
+stages:
+  - build
+  - test
+  - deploy-ai
+  - deploy-frontend
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  AI_SERVICE_PORT: "8000"
+  FRONTEND_PORT: "3000"
+
+# Build AI Service Docker Image
+build-ai-service:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_CERT_PATH: "/certs/client"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd deployment
+    - |
+      cat > Dockerfile << 'EOF'
+      FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
+
+      # Install system dependencies
+      RUN apt-get update && apt-get install -y \
+          python3 \
+          python3-pip \
+          python3-venv \
+          curl \
+          git \
+          && rm -rf /var/lib/apt/lists/*
+
+      # Install Ollama
+      RUN curl -fsSL https://ollama.ai/install.sh | sh
+
+      # Create app directory
+      WORKDIR /app
+
+      # Copy AI service code
+      COPY ai_service.py .
+      COPY requirements.txt .
+
+      # Install Python dependencies
+      RUN pip3 install -r requirements.txt
+
+      # Create models directory
+      RUN mkdir -p /models
+
+      # Expose port
+      EXPOSE 8000
+
+      # Start script
+      COPY start.sh .
+      RUN chmod +x start.sh
+
+      CMD ["./start.sh"]
+      EOF
+    - |
+      cat > requirements.txt << 'EOF'
+      fastapi==0.104.1
+      uvicorn==0.24.0
+      httpx==0.25.2
+      pydantic==2.5.0
+      psutil==5.9.6
+      python-multipart==0.0.6
+      EOF
+    - |
+      cat > ai_service.py << 'EOF'
+      from fastapi import FastAPI, HTTPException
+      from fastapi.middleware.cors import CORSMiddleware
+      from pydantic import BaseModel
+      import httpx
+      import time
+      import hashlib
+      import asyncio
+      from typing import Optional, Dict
+      import logging
+      import os
+
+      logging.basicConfig(level=logging.INFO)
+      logger = logging.getLogger(__name__)
+
+      app = FastAPI(title="Swarm Works AI API")
+
+      app.add_middleware(
+          CORSMiddleware,
+          allow_origins=["*"],
+          allow_credentials=True,
+          allow_methods=["*"],
+          allow_headers=["*"],
+      )
+
+      class CodeRequest(BaseModel):
+          prompt: str
+          max_tokens: Optional[int] = 2048
+          temperature: Optional[float] = 0.1
+          task: Optional[str] = "analyze"
+          language: Optional[str] = None
+
+      class CodeResponse(BaseModel):
+          output: str
+          task: str
+          model: str
+          tokens_used: int
+          processing_time: float
+
+      # Simple cache
+      cache: Dict[str, dict] = {}
+
+      def format_prompt(request: CodeRequest) -> str:
+          templates = {
+              "review": f"Review this {request.language or 'code'} for bugs and improvements:\n\n{request.prompt}",
+              "explain": f"Explain this {request.language or 'code'} in simple terms:\n\n{request.prompt}",
+              "test": f"Write unit tests for this {request.language or 'code'}:\n\n{request.prompt}",
+              "suggest": f"Suggest improvements for this {request.language or 'code'}:\n\n{request.prompt}",
+              "analyze": f"Analyze this {request.language or 'code'}:\n\n{request.prompt}"
+          }
+          return templates.get(request.task, templates["analyze"])
+
+      @app.post("/api/ai/analyze", response_model=CodeResponse)
+      async def analyze_code(request: CodeRequest):
+          start_time = time.time()
+          
+          try:
+              # Use CodeLlama 7B or fallback to smaller model
+              model = "codellama:7b-instruct"
+              formatted_prompt = format_prompt(request)
+              
+              async with httpx.AsyncClient() as client:
+                  response = await client.post(
+                      "http://localhost:11434/api/generate",
+                      json={
+                          "model": model,
+                          "prompt": formatted_prompt,
+                          "stream": False,
+                          "options": {
+                              "temperature": request.temperature,
+                              "num_predict": request.max_tokens,
+                          }
+                      },
+                      timeout=120.0
+                  )
+                  
+                  if response.status_code != 200:
+                      raise HTTPException(status_code=500, detail="Model API error")
+                  
+                  result = response.json()
+                  processing_time = time.time() - start_time
+                  
+                  return CodeResponse(
+                      output=result["response"],
+                      task=request.task,
+                      model=model,
+                      tokens_used=result.get("eval_count", 0),
+                      processing_time=round(processing_time, 2)
+                  )
+                  
+          except Exception as e:
+              logger.error(f"Error: {str(e)}")
+              raise HTTPException(status_code=500, detail=str(e))
+
+      @app.get("/health")
+      async def health_check():
+          try:
+              async with httpx.AsyncClient() as client:
+                  response = await client.get("http://localhost:11434/api/tags", timeout=5.0)
+                  models = response.json()
+                  return {
+                      "status": "healthy",
+                      "models": [m["name"] for m in models.get("models", [])]
+                  }
+          except:
+              return {"status": "unhealthy"}
+
+      if __name__ == "__main__":
+          import uvicorn
+          uvicorn.run(app, host="0.0.0.0", port=8000)
+      EOF
+    - |
+      cat > start.sh << 'EOF'
+      #!/bin/bash
+      
+      # Start Ollama in background
+      ollama serve &
+      
+      # Wait for Ollama to start
+      sleep 10
+      
+      # Pull models if not exists
+      if ! ollama list | grep -q "codellama:7b-instruct"; then
+          echo "Downloading CodeLlama 7B..."
+          ollama pull codellama:7b-instruct
+      fi
+      
+      # Start the API service
+      python3 ai_service.py
+      EOF
+    - docker build -t $CI_REGISTRY_IMAGE/ai-service:$CI_COMMIT_SHA .
+    - docker push $CI_REGISTRY_IMAGE/ai-service:$CI_COMMIT_SHA
+  only:
+    - main
+    - develop
+
+# Deploy AI Service to DigitalOcean
+deploy-ai-digitalocean:
+  stage: deploy-ai
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$DO_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $DO_DROPLET_IP >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh root@$DO_DROPLET_IP << 'ENDSSH'
+        # Update system
+        apt-get update
+        
+        # Install Docker if not exists
+        if ! command -v docker &> /dev/null; then
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sh get-docker.sh
+        fi
+        
+        # Stop existing containers
+        docker stop swarm-ai-service || true
+        docker rm swarm-ai-service || true
+        
+        # Pull and run new image
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+        docker pull $CI_REGISTRY_IMAGE/ai-service:$CI_COMMIT_SHA
+        
+        # Run AI service container
+        docker run -d \
+          --name swarm-ai-service \
+          --restart unless-stopped \
+          -p 8000:8000 \
+          -v ollama_models:/root/.ollama \
+          --gpus all \
+          $CI_REGISTRY_IMAGE/ai-service:$CI_COMMIT_SHA
+        
+        # Setup Nginx if not exists
+        if ! command -v nginx &> /dev/null; then
+            apt-get install -y nginx
+            cat > /etc/nginx/sites-available/default << 'EOF'
+        server {
+            listen 80;
+            server_name _;
+            
+            location / {
+                proxy_pass http://localhost:8000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_read_timeout 300s;
+            }
+        }
+        EOF
+            systemctl restart nginx
+        fi
+      ENDSSH
+  environment:
+    name: ai-production
+    url: http://$DO_DROPLET_IP
+  only:
+    - main
+
+# Build and Deploy Next.js Frontend
+build-frontend:
+  stage: build
+  image: node:18-alpine
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+      - node_modules/
+    expire_in: 1 hour
+  only:
+    - main
+
+deploy-frontend-vercel:
+  stage: deploy-frontend
+  image: node:18-alpine
+  before_script:
+    - npm install -g vercel
+  script:
+    - |
+      cat > .env.production << EOF
+      NEXTAUTH_URL=$VERCEL_URL
+      NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+      GITHUB_ID=$GITHUB_ID
+      GITHUB_SECRET=$GITHUB_SECRET
+      ARCADE_API_KEY=$ARCADE_API_KEY
+      NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+      NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+      SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+      DATABASE_URL=$DATABASE_URL
+      NEXT_PUBLIC_AI_SERVICE_URL=http://$DO_DROPLET_IP
+      AI_SERVICE_API_KEY=$AI_SERVICE_API_KEY
+      NEXT_PUBLIC_SOLANA_RPC_URL=$NEXT_PUBLIC_SOLANA_RPC_URL
+      NEXT_PUBLIC_MERCHANT_WALLET=$NEXT_PUBLIC_MERCHANT_WALLET
+      EOF
+    - vercel --token $VERCEL_TOKEN --prod
+  environment:
+    name: frontend-production
+    url: $VERCEL_URL
+  only:
+    - main
+
+# Alternative: Deploy to DigitalOcean App Platform
+deploy-app-platform:
+  stage: deploy-frontend
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      curl -X POST "https://api.digitalocean.com/v2/apps" \
+        -H "Authorization: Bearer $DO_API_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "spec": {
+            "name": "swarm-works-frontend",
+            "services": [
+              {
+                "name": "web",
+                "source_dir": "/",
+                "github": {
+                  "repo": "'$CI_PROJECT_PATH'",
+                  "branch": "main"
+                },
+                "run_command": "npm start",
+                "build_command": "npm run build",
+                "environment_slug": "node-js",
+                "instance_count": 1,
+                "instance_size_slug": "basic-xxs",
+                "envs": [
+                  {"key": "NEXT_PUBLIC_AI_SERVICE_URL", "value": "http://'$DO_DROPLET_IP'"},
+                  {"key": "DATABASE_URL", "value": "'$DATABASE_URL'"}
+                ]
+              }
+            ]
+          }
+        }'
+  when: manual
+  only:
+    - main
