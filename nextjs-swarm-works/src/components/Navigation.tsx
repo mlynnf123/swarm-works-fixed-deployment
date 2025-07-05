@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
 import { WalletButton } from './WalletButton'
 
@@ -13,9 +13,9 @@ export function Navigation() {
 
   const navItems = [
     { name: 'Home', href: '/' },
+    { name: 'Marketplace', href: '/marketplace' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Projects', href: '/projects' },
-    { name: 'Marketplace', href: '/marketplace' },
     { name: 'Swarms', href: '/swarms' },
     { name: 'AI', href: '/ai' },
     { name: 'Wallet', href: '/wallet' },
@@ -108,12 +108,12 @@ export function Navigation() {
             ) : (
               <>
                 <WalletButton />
-                <button
-                  onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
+                <Link
+                  href="/login"
                   className="text-sm uppercase tracking-wider text-gray-600 hover:text-black transition-colors"
                 >
                   Login
-                </button>
+                </Link>
               </>
             )}
           </div>

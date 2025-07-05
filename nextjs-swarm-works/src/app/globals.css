@@ -34,7 +34,8 @@
   --radius: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Dark mode disabled for consistent monochromatic design */
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -64,15 +65,15 @@
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
   }
-}
+} */
 
 * {
   border-color: hsl(var(--border));
 }
 
 body {
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
+  color: #000;
+  background: #fff;
   font-family: "SF Pro", -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-weight: 300;
   line-height: 1.5;
@@ -174,4 +175,31 @@ body {
 /* Ensure consistent spacing */
 .pt-nav {
   padding-top: 4rem;
+}
+
+/* Force text colors for consistency */
+.text-black {
+  color: #000 !important;
+}
+
+.text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+/* Ensure all headings and paragraphs are black by default */
+h1, h2, h3, h4, h5, h6, p, span, div, a, button {
+  color: inherit;
+}
+
+/* Fix any potential Tailwind dark mode overrides */
+.dark\:text-white {
+  color: #000 !important;
+}
+
+.dark\:text-gray-300 {
+  color: #4b5563 !important;
 }

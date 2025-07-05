@@ -1,5 +1,6 @@
 import NextAuth, { AuthOptions } from 'next-auth'
 import GithubProvider from 'next-auth/providers/github'
+import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/database'
@@ -26,6 +27,20 @@ export const authOptions: AuthOptions = {
           publicRepos: profile.public_repos,
           followers: profile.followers,
           following: profile.following,
+          role: 'DEVELOPER' // Default role, can be changed later
+        }
+      }
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID!,
+      clientSecret: process.env.GOOGLE_SECRET!,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          username: profile.email?.split('@')[0] || profile.name?.toLowerCase().replace(/\s+/g, ''),
           role: 'DEVELOPER' // Default role, can be changed later
         }
       }
@@ -114,6 +129,16 @@ export const authOptions: AuthOptions = {
     async signIn({ user, account, profile }) {
       // Auto-verify GitHub users
       if (account?.provider === 'github') {
+        // Update last login time
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() }
+        })
+        return true
+      }
+
+      // Auto-verify Google users
+      if (account?.provider === 'google') {
         // Update last login time
         await prisma.user.update({
           where: { id: user.id },

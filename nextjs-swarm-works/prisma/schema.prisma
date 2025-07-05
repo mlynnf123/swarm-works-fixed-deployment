@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // NextAuth.js required models
@@ -107,6 +108,9 @@ model User {
   // AI Sessions
   aiSessions       AISession[]
   aiFeedback       AIFeedback[]
+  
+  // Reputation events
+  reputationEvents ReputationEvent[]
 }
 
 enum UserRole {
@@ -392,4 +396,148 @@ model AIFeedback {
   // Relations
   session     AISession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// AI Agent model for autonomous agent reputation
+model AIAgent {
+  id                String              @id @default(cuid())
+  agentType         String              @unique // code-review, documentation, test-generation, etc.
+  name              String
+  description       String
+  reputation        Int                 @default(100) // Starting reputation
+  totalValidations  Int                 @default(0)
+  successfulValidations Int             @default(0)
+  failedValidations Int                 @default(0)
+  confidenceScore   Float               @default(0.5)
+  isActive          Boolean             @default(true)
+  
+  // Performance metrics
+  averageExecutionTime Float            @default(0.0)
+  totalRequests        Int              @default(0)
+  averageConfidence    Float            @default(0.5)
+  
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  lastActiveAt      DateTime?
+  
+  // Relations
+  validationsGiven    AgentValidation[] @relation("ValidatorAgent")
+  validationsReceived AgentValidation[] @relation("ValidatedAgent")
+  reputationHistory   ReputationEvent[]
+  gossipPacketsSent   GossipPacket[]   @relation("SenderAgent")
+  gossipPacketsReceived GossipPacket[] @relation("ReceiverAgent")
+}
+
+// Agent Validation model for peer-to-peer validation
+model AgentValidation {
+  id                  String             @id @default(cuid())
+  validatorAgentId    String
+  validatedAgentId    String
+  sessionId           String             // Links to AISession
+  
+  // Validation results
+  verdict             ValidationVerdict
+  confidenceScore     Float              // 0.0 - 1.0
+  vibeAlignmentScore  Float?             // 0.0 - 1.0 (optional vibe coding score)
+  technicalScore      Float              // 0.0 - 1.0
+  
+  // Detailed feedback
+  positiveAspects     String[]
+  improvementSuggestions String[]
+  criticalIssues      String[]
+  
+  // Meta information
+  validationMethod    String             // "autonomous", "triggered", "scheduled"
+  executionTime       Float              // in seconds
+  
+  // Timestamps
+  createdAt          DateTime           @default(now())
+  
+  // Relations
+  validatorAgent     AIAgent            @relation("ValidatorAgent", fields: [validatorAgentId], references: [id], onDelete: Cascade)
+  validatedAgent     AIAgent            @relation("ValidatedAgent", fields: [validatedAgentId], references: [id], onDelete: Cascade)
+}
+
+enum ValidationVerdict {
+  APPROVED
+  NEEDS_IMPROVEMENT
+  CRITICAL_ISSUE
+  EXCELLENT
+}
+
+// Reputation Event model for tracking reputation changes
+model ReputationEvent {
+  id           String           @id @default(cuid())
+  userId       String?
+  agentId      String?
+  eventType    ReputationEventType
+  points       Int              // Can be positive or negative
+  reason       String
+  metadata     Json?            // Additional context
+  
+  // Timestamps
+  createdAt    DateTime         @default(now())
+  
+  // Relations
+  user         User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent        AIAgent?         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+enum ReputationEventType {
+  // User events
+  PROJECT_COMPLETED
+  POSITIVE_REVIEW
+  NEGATIVE_REVIEW
+  AI_USAGE
+  HELPFUL_FEEDBACK
+  
+  // Agent events
+  SUCCESSFUL_ANALYSIS
+  PEER_VALIDATION_CORRECT
+  PEER_VALIDATION_INCORRECT
+  HIGH_CONFIDENCE_RESULT
+  LOW_CONFIDENCE_RESULT
+  CRITICAL_ISSUE_FOUND
+  FALSE_POSITIVE
+}
+
+// Gossip Packet model for agent-to-agent communication
+model GossipPacket {
+  id                   String         @id @default(cuid())
+  senderAgentId        String
+  receiverAgentId      String?        // null for broadcast
+  
+  // Gossip content
+  packetType           GossipType
+  targetSessionId      String?        // Which AI session this gossip is about
+  targetAgentId        String?        // Which agent this gossip is about
+  
+  // Gossip data
+  verdict              ValidationVerdict?
+  confidenceScore      Float?
+  vibeAlignmentScore   Float?
+  improvementSuggestions String[]
+  consensusWeight      Float?         // How much this gossip should influence consensus
+  
+  // Meta information
+  propagationDepth     Int            @default(0)
+  expiresAt            DateTime
+  processed            Boolean        @default(false)
+  
+  // Timestamps
+  createdAt            DateTime       @default(now())
+  processedAt          DateTime?
+  
+  // Relations
+  senderAgent          AIAgent        @relation("SenderAgent", fields: [senderAgentId], references: [id], onDelete: Cascade)
+  receiverAgent        AIAgent?       @relation("ReceiverAgent", fields: [receiverAgentId], references: [id], onDelete: Cascade)
+}
+
+enum GossipType {
+  VALIDATION_RESULT
+  REPUTATION_UPDATE
+  CONSENSUS_REQUEST
+  PEER_REVIEW
+  SYSTEM_STATUS
 }

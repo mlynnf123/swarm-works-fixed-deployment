@@ -20,7 +20,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
       </head>
-      <body className="min-h-screen bg-white font-sans antialiased">
+      <body className="min-h-screen bg-white text-black font-sans antialiased">
         <AuthProvider>
           <WalletProvider>
             <Navigation />

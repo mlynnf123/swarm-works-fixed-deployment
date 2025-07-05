@@ -34,7 +34,7 @@ export default function RegisterPage() {
               <div className="space-y-8">
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">🚀</span>
+                    <span className="text-lg font-bold">LAUNCH</span>
                   </div>
                   <div>
                     <h3 className="font-normal text-lg mb-2 tracking-wider uppercase">Launch Your Career</h3>
@@ -46,7 +46,7 @@ export default function RegisterPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">💡</span>
+                    <span className="text-lg font-bold">SMART</span>
                   </div>
                   <div>
                     <h3 className="font-normal text-lg mb-2 tracking-wider uppercase">Smart Matching</h3>
@@ -58,7 +58,7 @@ export default function RegisterPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">🔐</span>
+                    <span className="text-lg font-bold">SECURE</span>
                   </div>
                   <div>
                     <h3 className="font-normal text-lg mb-2 tracking-wider uppercase">Secure Payments</h3>
@@ -70,7 +70,7 @@ export default function RegisterPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl">🤖</span>
+                    <span className="text-lg font-bold">AI</span>
                   </div>
                   <div>
                     <h3 className="font-normal text-lg mb-2 tracking-wider uppercase">AI Assistance</h3>

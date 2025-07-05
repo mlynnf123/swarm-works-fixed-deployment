@@ -1,8 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 export default function WalletPage() {
+  const { data: session, status } = useSession()
   const [isConnected, setIsConnected] = useState(false)
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
 
@@ -11,28 +14,28 @@ export default function WalletPage() {
       id: 'phantom',
       name: 'Phantom',
       description: 'A friendly crypto wallet built for Solana',
-      icon: '👻',
+      icon: 'PH',
       popular: true
     },
     {
       id: 'solflare',
       name: 'Solflare',
       description: 'Secure and powerful Solana wallet',
-      icon: '🔥',
+      icon: 'SF',
       popular: true
     },
     {
       id: 'backpack',
       name: 'Backpack',
       description: 'The home for everything Solana',
-      icon: '🎒',
+      icon: 'BP',
       popular: false
     },
     {
       id: 'sollet',
       name: 'Sollet',
       description: 'Browser extension wallet for Solana',
-      icon: '🔗',
+      icon: 'SL',
       popular: false
     }
   ]
@@ -83,6 +86,48 @@ export default function WalletPage() {
     }, 1500)
   }
 
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-white pt-16">
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-white pt-16">
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <div className="text-center">
+            <h1 className="text-section-title mb-2">
+              WALLET
+              <span className="block w-16 h-0.5 bg-black mt-4 mx-auto"></span>
+            </h1>
+            <p className="text-gray-600 mt-4 mb-8">
+              Manage your SWARM tokens and blockchain assets
+            </p>
+            <div className="bg-gray-50 border border-gray-200 p-8 max-w-md mx-auto">
+              <h3 className="font-normal mb-4">Authentication Required</h3>
+              <p className="text-gray-600 mb-6 text-sm">
+                Sign in to connect your wallet and manage your SWARM tokens.
+              </p>
+              <Link href="/login" className="swarm-button-primary">
+                SIGN IN TO CONTINUE
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-white pt-16">
@@ -101,7 +146,7 @@ export default function WalletPage() {
           {/* Connect Wallet Section */}
           <div className="text-center mb-16">
             <div className="w-32 h-32 mx-auto mb-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <span className="text-4xl">💳</span>
+              <span className="text-lg font-bold">WALLET</span>
             </div>
             <h2 className="text-2xl font-light tracking-wider uppercase mb-4">Connect Your Wallet</h2>
             <p className="text-gray-600 font-light mb-8 max-w-md mx-auto">
@@ -129,7 +174,7 @@ export default function WalletPage() {
                   </span>
                 )}
                 <div className="flex items-center mb-3">
-                  <span className="text-2xl mr-3">{wallet.icon}</span>
+                  <span className="text-lg font-bold mr-3 bg-gray-200 px-2 py-1 rounded">{wallet.icon}</span>
                   <h3 className="font-normal text-lg">{wallet.name}</h3>
                 </div>
                 <p className="text-gray-600 font-light text-sm">{wallet.description}</p>
@@ -146,7 +191,7 @@ export default function WalletPage() {
           {/* Security Note */}
           <div className="mt-12 p-6 bg-gray-50 border border-gray-200 max-w-2xl mx-auto">
             <h3 className="font-normal mb-3 flex items-center">
-              <span className="mr-2">🔒</span>
+              <span className="mr-2 text-lg font-bold">SEC</span>
               Security & Privacy
             </h3>
             <ul className="text-sm text-gray-600 font-light space-y-2">

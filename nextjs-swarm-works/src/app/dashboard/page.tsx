@@ -1,9 +1,55 @@
 'use client'
 
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { GitHubIntegration } from '@/components/GitHubIntegration'
+import { ReputationDashboard } from '@/components/dashboard/ReputationDashboard'
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession()
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-white pt-16">
+        <div className="max-w-6xl mx-auto px-6 py-16">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-white pt-16">
+        <div className="max-w-6xl mx-auto px-6 py-16">
+          <div className="text-center">
+            <h1 className="swarm-section-title mb-2">
+              DASHBOARD
+              <span className="block w-16 h-0.5 bg-black mt-4 mx-auto"></span>
+            </h1>
+            <p className="text-gray-600 mt-4 mb-8">
+              Your development analytics and network status
+            </p>
+            <div className="bg-gray-50 border border-gray-200 p-8 max-w-md mx-auto">
+              <h3 className="font-normal mb-4">Authentication Required</h3>
+              <p className="text-gray-600 mb-6 text-sm">
+                Sign in to access your personal dashboard with reputation tracking and project analytics.
+              </p>
+              <Link href="/login" className="swarm-button-primary">
+                SIGN IN TO CONTINUE
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white pt-16">
       <div className="max-w-6xl mx-auto px-6 py-16">
@@ -133,6 +179,14 @@ export default function DashboardPage() {
           <div className="lg:col-span-3 mb-8">
             <div className="swarm-card p-6">
               <GitHubIntegration />
+            </div>
+          </div>
+
+          {/* Reputation & Agent Network */}
+          <div className="lg:col-span-3 mb-8">
+            <div className="swarm-card p-6">
+              <h2 className="text-xl font-light tracking-wider uppercase mb-6">AI Agent Network & Reputation</h2>
+              <ReputationDashboard />
             </div>
           </div>
 

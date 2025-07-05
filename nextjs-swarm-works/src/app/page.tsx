@@ -113,7 +113,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-lg font-light tracking-wider uppercase mb-2">AI Assistance</h3>
-              <p className="text-gray-600 text-sm">Four specialized agents</p>
+              <p className="text-gray-600 text-sm">Six specialized agents</p>
             </div>
             
             <div className="text-center">
@@ -122,8 +122,8 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-light tracking-wider uppercase mb-2">Real-Time</h3>
-              <p className="text-gray-600 text-sm">Live collaboration</p>
+              <h3 className="text-lg font-light tracking-wider uppercase mb-2">Coming Soon</h3>
+              <p className="text-gray-600 text-sm">Real-time collaboration</p>
             </div>
             
             <div className="text-center">
@@ -143,7 +143,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-lg font-light tracking-wider uppercase mb-2">GitHub</h3>
-              <p className="text-gray-600 text-sm">Automated workflows</p>
+              <p className="text-gray-600 text-sm">Repository integration</p>
             </div>
           </div>
         </div>

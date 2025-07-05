@@ -2,13 +2,17 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Project } from '@/types/marketplace'
 
 export default function MarketplacePage() {
+  const { data: session } = useSession()
   const [activeFilter, setActiveFilter] = useState('ALL')
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [budgetRange, setBudgetRange] = useState({ min: '', max: '' })
   const [experienceFilter, setExperienceFilter] = useState('ALL')
+  const router = useRouter()
 
   // Mock data for demonstration
   const projects: Project[] = [
@@ -142,7 +146,10 @@ export default function MarketplacePage() {
               Browse available projects and submit proposals
             </p>
           </div>
-          <Link href="/post-project" className="swarm-button-primary">
+          <Link 
+            href={session ? "/post-project" : "/login"} 
+            className="swarm-button-primary"
+          >
             POST PROJECT
           </Link>
         </div>
@@ -306,7 +313,7 @@ export default function MarketplacePage() {
                     <span className="text-gray-500">• {project.postedAt}</span>
                   </div>
                   <Link 
-                    href={`/projects/${project.id}`}
+                    href={session ? `/projects/${project.id}` : "/login"}
                     className="swarm-button-primary"
                   >
                     SUBMIT PROPOSAL
